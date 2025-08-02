@@ -1,0 +1,725 @@
+package com.wechatopensdk;
+
+import android.content.Context;
+import android.content.Intent;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.net.Uri;
+import android.os.Environment;
+import android.util.Base64;
+import android.util.Log;
+
+import androidx.annotation.Nullable;
+import androidx.core.content.FileProvider;
+
+import com.facebook.common.executors.UiThreadImmediateExecutorService;
+import com.facebook.common.internal.Files;
+import com.facebook.common.references.CloseableReference;
+import com.facebook.common.util.UriUtil;
+import com.facebook.datasource.DataSource;
+import com.facebook.drawee.backends.pipeline.Fresco;
+import com.facebook.imagepipeline.common.ResizeOptions;
+import com.facebook.imagepipeline.core.ImagePipeline;
+import com.facebook.imagepipeline.datasource.BaseBitmapDataSubscriber;
+import com.facebook.imagepipeline.image.CloseableImage;
+import com.facebook.imagepipeline.request.ImageRequest;
+import com.facebook.imagepipeline.request.ImageRequestBuilder;
+import com.facebook.react.bridge.Arguments;
+import com.facebook.react.bridge.Callback;
+import com.facebook.react.bridge.Promise;
+import com.facebook.react.bridge.ReactApplicationContext;
+import com.facebook.react.module.annotations.ReactModule;
+import com.facebook.react.bridge.ReactContext;
+import com.facebook.react.bridge.ReactContextBaseJavaModule;
+import com.facebook.react.bridge.ReactMethod;
+import com.facebook.react.bridge.ReadableMap;
+import com.facebook.react.bridge.WritableMap;
+import com.facebook.react.modules.core.DeviceEventManagerModule;
+import com.facebook.react.modules.core.RCTNativeAppEventEmitter;
+import com.tencent.mm.opensdk.diffdev.DiffDevOAuthFactory;
+import com.tencent.mm.opensdk.diffdev.IDiffDevOAuth;
+import com.tencent.mm.opensdk.diffdev.OAuthErrCode;
+import com.tencent.mm.opensdk.diffdev.OAuthListener;
+import com.tencent.mm.opensdk.modelbase.BaseReq;
+import com.tencent.mm.opensdk.modelbase.BaseResp;
+import com.tencent.mm.opensdk.modelbiz.ChooseCardFromWXCardPackage;
+import com.tencent.mm.opensdk.modelbiz.WXOpenBusinessWebview;
+import com.tencent.mm.opensdk.modelbiz.WXOpenCustomerServiceChat;
+import com.tencent.mm.opensdk.modelmsg.SendAuth;
+import com.tencent.mm.opensdk.modelmsg.SendMessageToWX;
+import com.tencent.mm.opensdk.modelmsg.ShowMessageFromWX;
+import com.tencent.mm.opensdk.modelmsg.WXFileObject;
+import com.tencent.mm.opensdk.modelmsg.WXImageObject;
+import com.tencent.mm.opensdk.modelmsg.WXMediaMessage;
+import com.tencent.mm.opensdk.modelmsg.WXMiniProgramObject;
+import com.tencent.mm.opensdk.modelmsg.WXMusicObject;
+import com.tencent.mm.opensdk.modelmsg.WXTextObject;
+import com.tencent.mm.opensdk.modelmsg.WXVideoObject;
+import com.tencent.mm.opensdk.modelmsg.WXWebpageObject;
+import com.tencent.mm.opensdk.modelpay.PayReq;
+import com.tencent.mm.opensdk.modelpay.PayResp;
+import com.tencent.mm.opensdk.modelbiz.WXLaunchMiniProgram;
+import com.tencent.mm.opensdk.openapi.IWXAPI;
+import com.tencent.mm.opensdk.openapi.IWXAPIEventHandler;
+import com.tencent.mm.opensdk.openapi.WXAPIFactory;
+import com.tencent.mm.opensdk.constants.ConstantsAPI;
+import com.tencent.mm.opensdk.modelbiz.SubscribeMessage;
+
+import java.io.BufferedInputStream;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.HttpURLConnection;
+import java.net.URI;
+import java.net.URL;
+import java.util.ArrayList;
+import java.util.UUID;
+
+public class WechatOpensdkModule extends NativeWechatOpensdkSpec implements IWXAPIEventHandler {
+    WechatOpensdkModule(ReactApplicationContext context) {
+        super(context);
+    }
+    public static String NAME = "WechatOpensdk";
+    private String appid;
+    private IWXAPI api;
+    private Promise promiser;
+    // 缩略图大小 kb
+    private final static int THUMB_SIZE = 32;
+    private static ArrayList<WechatOpensdkModule> modules = new ArrayList<>();
+
+
+    @Override
+    public String getName() {
+        return NAME;
+    }
+
+    @Override
+    public void initialize() {
+        super.initialize();
+        modules.add(this);
+    }
+
+    @Override
+    public void invalidate() {
+        super.invalidate();
+        if (api != null) {
+            api = null;
+        }
+        modules.remove(this);
+    }
+
+    @ReactMethod
+    public void registerApp(String appid, String universal, Promise promise){
+        this.appid = appid;
+        api = WXAPIFactory.createWXAPI(getReactApplicationContext().getBaseContext(), appid, true);
+        boolean OK = api.registerApp(appid);
+
+        promise.resolve(OK);
+    }
+
+    @ReactMethod
+    public void isAppInstalled(Promise promise) {
+    Log.d("DDFDFDFDFDFDF", "是不是 " + (api.isWXAppInstalled() ? "YES" : "NO"));
+        promise.resolve(true);
+    }
+
+    @ReactMethod
+    public void openApp(Promise promise) {
+        api.openWXApp();
+        promise.resolve(null);
+    }
+
+    @ReactMethod
+    public void auth(ReadableMap data, Promise promise) {
+        promiser = promise;
+        SendAuth.Req req = new SendAuth.Req();
+        req.scope = data.getString("scope");
+        req.state = data.getString("state");
+        api.sendReq(req);
+    }
+
+    /**
+     * 分享文件
+     */
+    @ReactMethod
+    public void shareFile(ReadableMap data, Promise promise) throws Exception {
+        promiser = promise;
+        WXFileObject fileObj = new WXFileObject();
+
+        String url = data.getString("url");
+        if (url.startsWith("http")) {
+            fileObj.fileData = loadRawDataFromURL(url);
+        } else {
+            File file = new File(url);
+            String fileUri = getFileUri(getReactApplicationContext(), file);
+            fileObj.filePath = fileUri;
+        }
+
+        WXMediaMessage msg = new WXMediaMessage();
+        msg.mediaObject = fileObj;
+        msg.title = data.getString("title");
+
+        SendMessageToWX.Req req = new SendMessageToWX.Req();
+        req.transaction = String.valueOf(System.currentTimeMillis());
+        req.message = msg;
+        req.scene = data.hasKey("scene") ? data.getInt("scene") : SendMessageToWX.Req.WXSceneSession;
+        api.sendReq(req);
+    }
+
+    /**
+     * 分享文本
+     */
+    @ReactMethod
+    public void shareText(ReadableMap data, Promise promise) {
+        promiser = promise;
+        //初始化一个 WXTextObject 对象，填写分享的文本内容
+        WXTextObject textObj = new WXTextObject();
+        textObj.text = data.getString("text");
+
+        //用 WXTextObject 对象初始化一个 WXMediaMessage 对象
+        WXMediaMessage msg = new WXMediaMessage();
+        msg.mediaObject = textObj;
+        msg.description = data.getString("text");
+
+        SendMessageToWX.Req req = new SendMessageToWX.Req();
+        req.transaction = "text";
+        req.message = msg;
+        req.scene = data.hasKey("scene") ? data.getInt("scene") : SendMessageToWX.Req.WXSceneSession;
+        api.sendReq(req);
+    }
+
+    @ReactMethod
+    public void shareImage(final ReadableMap data, final Promise promise) {
+        promiser = promise;
+        this._getImage(Uri.parse(data.getString("imageUrl")), null, new ImageCallback() {
+            @Override
+            public void invoke(@Nullable Bitmap bitmap) {
+                Bitmap bmp = bitmap;
+                int maxWidth = data.hasKey("maxWidth") ? data.getInt("maxWidth") : -1;
+                if (maxWidth > 0) {
+                    bmp = Bitmap.createScaledBitmap(bmp, maxWidth, bmp.getHeight() / bmp.getWidth() * maxWidth, true);
+                }
+                // 初始化 WXImageObject 和 WXMediaMessage 对象
+                WXImageObject imgObj = new WXImageObject(bmp);
+                WXMediaMessage msg = new WXMediaMessage();
+                msg.mediaObject = imgObj;
+
+                // 设置缩略图
+                msg.thumbData = bitmapResizeGetBytes(bmp, THUMB_SIZE);
+
+                // 构造一个Req
+                SendMessageToWX.Req req = new SendMessageToWX.Req();
+                req.transaction = "img";
+                req.message = msg;
+                // req.userOpenId = getOpenId();
+                req.scene = data.hasKey("scene") ? data.getInt("scene") : SendMessageToWX.Req.WXSceneSession;
+                api.sendReq(req);
+            }
+        });
+
+    }
+
+    @ReactMethod
+    public void shareLocalImage(final ReadableMap data, final Promise promise) {
+        promiser = promise;
+        FileInputStream fs = null;
+        try {
+            String path = data.getString("imageUrl");
+            if (path.indexOf("file://") > -1) {
+                path = path.substring(7);
+            }
+//            int maxWidth = data.hasKey("maxWidth") ? data.getInt("maxWidth") : -1;
+            fs = new FileInputStream(path);
+            Bitmap bmp = BitmapFactory.decodeStream(fs);
+
+//            if (maxWidth > 0) {
+//                bmp = Bitmap.createScaledBitmap(bmp, maxWidth, bmp.getHeight() / bmp.getWidth() * maxWidth, true);
+//            }
+
+//            File f = Environment.getExternalStoragePublicDirectory(SDCARD_ROOT + "/react-native-wechat-lib");
+//            String fileName = "wechat-share.jpg";
+//            String tempPath = SDCARD_ROOT + "/react-native-wechat-lib";
+//            File file = new File(f, fileName);
+//            try {
+//                FileOutputStream fos = new FileOutputStream(file);
+//                bmp.compress(Bitmap.CompressFormat.JPEG, 100, fos);
+//                fos.flush();
+//                fos.close();
+//            } catch (FileNotFoundException e) {
+//                e.printStackTrace();
+//            } catch (IOException e) {
+//                e.printStackTrace();
+//            }
+
+//            int size = bmp.getByteCount();
+//            ByteArrayOutputStream var2 = new ByteArrayOutputStream();
+//            bmp.compress(Bitmap.CompressFormat.JPEG, 85, var2);
+//            int size2 = var2.toByteArray().length;
+            // 初始化 WXImageObject 和 WXMediaMessage 对象
+
+            WXImageObject imgObj = new WXImageObject(bmp);
+            WXMediaMessage msg = new WXMediaMessage();
+            msg.mediaObject = imgObj;
+            // 设置缩略图
+            msg.thumbData = bitmapResizeGetBytes(bmp, THUMB_SIZE);
+            bmp.recycle();
+            // 构造一个Req
+            SendMessageToWX.Req req = new SendMessageToWX.Req();
+            req.transaction = "img";
+            req.message = msg;
+            // req.userOpenId = getOpenId();
+            req.scene = data.hasKey("scene") ? data.getInt("scene") : SendMessageToWX.Req.WXSceneSession;
+            api.sendReq(req);
+
+        } catch (FileNotFoundException e) {
+            promise.reject("ERROR", e.getMessage());
+        }
+    }
+
+    @ReactMethod
+    public void shareMusic(final ReadableMap data, final Promise promise) {
+        promiser = promise;
+        // 初始化一个WXMusicObject，填写url
+        WXMusicObject music = new WXMusicObject();
+        music.musicUrl = data.hasKey("musicUrl") ? data.getString("musicUrl") : null;
+        music.musicLowBandUrl = data.hasKey("musicLowBandUrl") ? data.getString("musicLowBandUrl") : null;
+        music.musicDataUrl = data.hasKey("musicDataUrl") ? data.getString("musicDataUrl") : null;
+        music.musicUrl = data.hasKey("musicUrl") ? data.getString("musicUrl") : null;
+        music.musicLowBandDataUrl = data.hasKey("musicLowBandDataUrl") ? data.getString("musicLowBandDataUrl") : null;
+        // 用 WXMusicObject 对象初始化一个 WXMediaMessage 对象
+        final WXMediaMessage msg = new WXMediaMessage();
+        msg.mediaObject = music;
+        msg.title = data.hasKey("title") ? data.getString("title") : null;
+        msg.description = data.hasKey("description") ? data.getString("description") : null;
+
+        if (data.hasKey("thumbImageUrl")) {
+            this._getImage(Uri.parse(data.getString("thumbImageUrl")), null, new ImageCallback() {
+                @Override
+                public void invoke(@Nullable Bitmap bmp) {
+                    // 设置缩略图
+                    if (bmp != null) {
+                        msg.thumbData = bitmapResizeGetBytes(bmp, THUMB_SIZE);
+                    }
+                    // 构造一个Req
+                    SendMessageToWX.Req req = new SendMessageToWX.Req();
+                    req.transaction = "music";
+                    req.message = msg;
+                    req.scene = data.hasKey("scene") ? data.getInt("scene") : SendMessageToWX.Req.WXSceneSession;
+                    api.sendReq(req);
+
+                }
+            });
+        } else {
+            // 构造一个Req
+            SendMessageToWX.Req req = new SendMessageToWX.Req();
+            req.transaction = "music";
+            req.message = msg;
+            req.scene = data.hasKey("scene") ? data.getInt("scene") : SendMessageToWX.Req.WXSceneSession;
+            api.sendReq(req);
+
+        }
+
+    }
+
+    @ReactMethod
+    public void shareVideo(final ReadableMap data, final Promise promise) {
+        promiser = promise;
+        // 初始化一个WXVideoObject，填写url
+        WXVideoObject video = new WXVideoObject();
+        video.videoUrl = data.hasKey("videoUrl") ? data.getString("videoUrl") : null;
+        video.videoLowBandUrl = data.hasKey("videoLowBandUrl") ? data.getString("videoLowBandUrl") : null;
+        //用 WXVideoObject 对象初始化一个 WXMediaMessage 对象
+        final WXMediaMessage msg = new WXMediaMessage(video);
+        msg.title = data.hasKey("title") ? data.getString("title") : null;
+        msg.description = data.hasKey("description") ? data.getString("description") : null;
+
+        if (data.hasKey("thumbImageUrl")) {
+            this._getImage(Uri.parse(data.getString("thumbImageUrl")), null, new ImageCallback() {
+                @Override
+                public void invoke(@Nullable Bitmap bmp) {
+                    // 设置缩略图
+                    if (bmp != null) {
+                        msg.thumbData = bitmapResizeGetBytes(bmp, THUMB_SIZE);
+                    }
+                    // 构造一个Req
+                    SendMessageToWX.Req req = new SendMessageToWX.Req();
+                    req.transaction = "video";
+                    req.message = msg;
+                    req.scene = data.hasKey("scene") ? data.getInt("scene") : SendMessageToWX.Req.WXSceneSession;
+                    api.sendReq(req);
+                }
+            });
+        } else {
+            // 构造一个Req
+            SendMessageToWX.Req req = new SendMessageToWX.Req();
+            req.transaction = "video";
+            req.message = msg;
+            req.scene = data.hasKey("scene") ? data.getInt("scene") : SendMessageToWX.Req.WXSceneSession;
+            api.sendReq(req);
+        }
+    }
+
+    /**
+     * 分享网页
+     *
+     */
+    @ReactMethod
+    public void shareWebpage(final ReadableMap data, final Promise promise) {
+        promiser = promise;
+        // 初始化一个WXWebpageObject，填写url
+        WXWebpageObject webpage = new WXWebpageObject();
+        webpage.webpageUrl = data.hasKey("webpageUrl") ? data.getString("webpageUrl") : null;
+
+        //用 WXWebpageObject 对象初始化一个 WXMediaMessage 对象
+        final WXMediaMessage msg = new WXMediaMessage(webpage);
+        msg.title = data.hasKey("title") ? data.getString("title") : null;
+        msg.description = data.hasKey("description") ? data.getString("description") : null;
+
+        if (data.hasKey("thumbImageUrl")) {
+            this._getImage(Uri.parse(data.getString("thumbImageUrl")), null, new ImageCallback() {
+                @Override
+                public void invoke(@Nullable Bitmap bmp) {
+                    // 设置缩略图
+                    if (bmp != null) {
+                        msg.thumbData = bitmapResizeGetBytes(bmp, THUMB_SIZE);
+                    }
+                    // 构造一个Req
+                    SendMessageToWX.Req req = new SendMessageToWX.Req();
+                    req.transaction = "webpage";
+                    req.message = msg;
+                    req.scene = data.hasKey("scene") ? data.getInt("scene") : SendMessageToWX.Req.WXSceneSession;
+                    api.sendReq(req);
+                }
+            });
+        } else {
+            // 构造一个Req
+            SendMessageToWX.Req req = new SendMessageToWX.Req();
+            req.transaction = "webpage";
+            req.message = msg;
+            req.scene = data.hasKey("scene") ? data.getInt("scene") : SendMessageToWX.Req.WXSceneSession;
+            api.sendReq(req);
+        }
+    }
+
+    /**
+     * 分享小程序
+     *
+     */
+    @ReactMethod
+    public void shareMiniProgram(final ReadableMap data, final Promise promise) {
+        promiser = promise;
+        WXMiniProgramObject miniProgramObj = new WXMiniProgramObject();
+        // 兼容低版本的网页链接
+        miniProgramObj.webpageUrl = data.hasKey("webpageUrl") ? data.getString("webpageUrl") : null;
+        // 正式版:0，测试版:1，体验版:2
+        miniProgramObj.miniprogramType = data.hasKey("miniProgramType") ? data.getInt("miniProgramType") : WXMiniProgramObject.MINIPTOGRAM_TYPE_RELEASE;
+        // 小程序原始id
+        miniProgramObj.userName = data.hasKey("userName") ? data.getString("userName") : null;
+        // 小程序页面路径；对于小游戏，可以只传入 query 部分，来实现传参效果，如：传入 "?foo=bar"
+        miniProgramObj.path = data.hasKey("path") ? data.getString("path") : null;
+        final WXMediaMessage msg = new WXMediaMessage(miniProgramObj);
+        // 小程序消息 title
+        msg.title = data.hasKey("title") ? data.getString("title") : null;
+        // 小程序消息 desc
+        msg.description = data.hasKey("description") ? data.getString("description") : null;
+
+        String thumbImageUrl = data.hasKey("hdImageUrl") ? data.getString("hdImageUrl") : data.hasKey("thumbImageUrl") ? data.getString("thumbImageUrl") : null;
+
+        if (thumbImageUrl != null && !thumbImageUrl.equals("")) {
+            this._getImage(Uri.parse(thumbImageUrl), null, new ImageCallback() {
+                @Override
+                public void invoke(@Nullable Bitmap bmp) {
+                    // 小程序消息封面图片，小于128k
+                    if (bmp != null) {
+                        msg.thumbData = bitmapResizeGetBytes(bmp, 128);
+                    }
+                    // 构造一个Req
+                    SendMessageToWX.Req req = new SendMessageToWX.Req();
+                    req.transaction = "miniProgram";
+                    req.message = msg;
+                    req.scene = data.hasKey("scene") ? data.getInt("scene") : SendMessageToWX.Req.WXSceneSession;
+
+                    api.sendReq(req);
+                }
+            });
+        } else {
+            // 构造一个Req
+            SendMessageToWX.Req req = new SendMessageToWX.Req();
+            req.transaction = "miniProgram";
+            req.message = msg;
+            req.scene = data.hasKey("scene") ? data.getInt("scene") : SendMessageToWX.Req.WXSceneSession;
+
+            api.sendReq(req);
+        }
+    }
+
+    @ReactMethod
+    public void launchMiniProgram(ReadableMap data, Promise promise) {
+        WXLaunchMiniProgram.Req req = new WXLaunchMiniProgram.Req();
+        // 填小程序原始id
+        req.userName = data.getString("userName");
+        //拉起小程序页面的可带参路径，不填默认拉起小程序首页
+        req.path = data.getString("path");
+        // 可选打开 开发版，体验版和正式版
+        req.miniprogramType = data.getInt("miniProgramType");
+
+        api.sendReq(req);
+        promise.resolve(null);
+    }
+
+    /**
+     * 一次性订阅消息
+     *
+     */
+    @ReactMethod
+    public void subscribeMessage(ReadableMap data, Promise promise) {
+        SubscribeMessage.Req req = new SubscribeMessage.Req();
+        req.scene = data.hasKey("scene") ? data.getInt("scene") : SendMessageToWX.Req.WXSceneSession;
+        req.templateID = data.getString("templateId");
+        req.reserved = data.getString("reserved");
+
+        api.sendReq(req);
+        promise.resolve(null);
+    }
+
+    @ReactMethod
+    public void pay(ReadableMap data, Promise promise) {
+        promiser = promise;
+        PayReq payReq = new PayReq();
+        if (data.hasKey("partnerId")) {
+            payReq.partnerId = data.getString("partnerId");
+        }
+        if (data.hasKey("prepayId")) {
+            payReq.prepayId = data.getString("prepayId");
+        }
+        if (data.hasKey("nonceStr")) {
+            payReq.nonceStr = data.getString("nonceStr");
+        }
+        if (data.hasKey("timeStamp")) {
+            payReq.timeStamp = data.getString("timeStamp");
+        }
+        if (data.hasKey("sign")) {
+            payReq.sign = data.getString("sign");
+        }
+        if (data.hasKey("package")) {
+            payReq.packageValue = data.getString("package");
+        }
+        if (data.hasKey("extData")) {
+            payReq.extData = data.getString("extData");
+        }
+        payReq.appId = appid;
+
+        api.sendReq(payReq);
+    }
+
+    @ReactMethod
+    public void chooseInvoice(ReadableMap data, Promise promise) {
+        ChooseCardFromWXCardPackage.Req req = new ChooseCardFromWXCardPackage.Req();
+
+        req.appId = appid;
+        req.cardType = "INVOICE";
+        req.timeStamp = String.valueOf(data.getInt("timeStamp"));
+        req.nonceStr = data.getString("nonceStr");
+        req.cardSign = data.getString("cardSign");
+        req.signType = data.getString("signType");
+
+        api.sendReq(req);
+        promise.resolve(null);
+    }
+
+    @ReactMethod
+    public void customerService(ReadableMap data, Promise promise) {
+        // open customer service logic
+        WXOpenCustomerServiceChat.Req req = new WXOpenCustomerServiceChat.Req();
+        req.corpId = data.getString("corpId");
+        req.url = data.getString("url");
+
+        api.sendReq(req);
+        promise.resolve(null);
+    }
+
+
+
+
+
+
+
+
+
+
+
+
+    private static byte[] bitmapTopBytes(Bitmap bitmap) {
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        bitmap.compress(Bitmap.CompressFormat.JPEG, 100, baos);
+        bitmap.recycle();
+        return baos.toByteArray();
+    }
+
+    private static byte[] bitmapResizeGetBytes(Bitmap image, int size) {
+        // little-snow-fox 2019.10.20
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        // 质量压缩方法，这里100表示第一次不压缩，把压缩后的数据缓存到 baos
+        image.compress(Bitmap.CompressFormat.JPEG, 100, baos);
+        int options = 100;
+        // 循环判断压缩后依然大于 32kb 则继续压缩
+        while (baos.toByteArray().length / 1024 > size) {
+            // 重置baos即清空baos
+            baos.reset();
+            if (options > 10) {
+                options -= 8;
+            } else {
+                return bitmapResizeGetBytes(Bitmap.createScaledBitmap(image, 280, image.getHeight() / image.getWidth() * 280, true), size);
+            }
+            // 这里压缩options%，把压缩后的数据存放到baos中
+            image.compress(Bitmap.CompressFormat.JPEG, options, baos);
+        }
+        return baos.toByteArray();
+    }
+
+    public byte[] loadRawDataFromURL(String u) throws Exception {
+        URL url = new URL(u);
+        HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+
+        InputStream is = conn.getInputStream();
+        BufferedInputStream bis = new BufferedInputStream(is);
+
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+
+        final int BUFFER_SIZE = 2048;
+        final int EOF = -1;
+
+        int c;
+        byte[] buf = new byte[BUFFER_SIZE];
+
+        while (true) {
+            c = bis.read(buf);
+            if (c == EOF)
+                break;
+
+            baos.write(buf, 0, c);
+        }
+
+        conn.disconnect();
+        is.close();
+
+        byte[] data = baos.toByteArray();
+        baos.flush();
+
+        return data;
+    }
+
+    public String getFileUri(Context context, File file) {
+        if (file == null || !file.exists()) {
+            return null;
+        }
+
+        Uri contentUri = FileProvider.getUriForFile(context,
+                context.getPackageName() + ".fileprovider",  // 要与`AndroidManifest.xml`里配置的`authorities`一致
+                file);
+
+        // 授权给微信访问路径
+        context.grantUriPermission("com.tencent.mm",  // 这里填微信包名
+                contentUri, Intent.FLAG_GRANT_READ_URI_PERMISSION);
+
+        return contentUri.toString();   // contentUri.toString() 即是以"content://"开头的用于共享的路径
+    }
+
+    private void _getImage(Uri uri, ResizeOptions resizeOptions, final ImageCallback imageCallback) {
+        BaseBitmapDataSubscriber dataSubscriber = new BaseBitmapDataSubscriber() {
+            @Override
+            protected void onNewResultImpl(Bitmap bitmap) {
+                if (bitmap != null) {
+                    if (bitmap.getConfig() != null) {
+                        bitmap = bitmap.copy(bitmap.getConfig(), true);
+                        imageCallback.invoke(bitmap);
+                    } else {
+                        bitmap = bitmap.copy(Bitmap.Config.ARGB_8888, true);
+                        imageCallback.invoke(bitmap);
+                    }
+                } else {
+                    imageCallback.invoke(null);
+                }
+            }
+
+            @Override
+            protected void onFailureImpl(DataSource<CloseableReference<CloseableImage>> dataSource) {
+                imageCallback.invoke(null);
+            }
+        };
+
+        ImageRequestBuilder builder = ImageRequestBuilder.newBuilderWithSource(uri);
+        if (resizeOptions != null) {
+            builder = builder.setResizeOptions(resizeOptions);
+        }
+        ImageRequest imageRequest = builder.build();
+
+        ImagePipeline imagePipeline = Fresco.getImagePipeline();
+        DataSource<CloseableReference<CloseableImage>> dataSource = imagePipeline.fetchDecodedImage(imageRequest, null);
+        dataSource.subscribe(dataSubscriber, UiThreadImmediateExecutorService.getInstance());
+    }
+
+    @Override
+    public void onReq(BaseReq baseReq) {
+
+    }
+
+    @Override
+    public void onResp(BaseResp baseResp) {
+        Log.d("WechatOpensdkModule", "收到回调 "+baseResp.errCode);
+        WritableMap map = Arguments.createMap();
+        map.putInt("errCode", baseResp.errCode);
+        map.putString("errStr", baseResp.errStr);
+        map.putString("openId", baseResp.openId);
+        map.putString("transaction", baseResp.transaction);
+        if (baseResp instanceof SendAuth.Resp) {
+            SendAuth.Resp resp = (SendAuth.Resp) (baseResp);
+            map.putString("type", "SendAuth.Resp");
+            map.putString("code", resp.code);
+            map.putString("state", resp.state);
+            map.putString("url", resp.url);
+            map.putString("lang", resp.lang);
+            map.putString("country", resp.country);
+        } else if (baseResp instanceof SendMessageToWX.Resp) {
+            SendMessageToWX.Resp resp = (SendMessageToWX.Resp) (baseResp);
+            map.putString("type", "SendMessageToWX.Resp");
+        } else if (baseResp instanceof PayResp) {
+            PayResp resp = (PayResp) (baseResp);
+            map.putString("type", "PayReq.Resp");
+            map.putString("returnKey", resp.returnKey);
+        } else if (baseResp.getType() == ConstantsAPI.COMMAND_LAUNCH_WX_MINIPROGRAM) {
+            WXLaunchMiniProgram.Resp resp = (WXLaunchMiniProgram.Resp) baseResp;
+            // 对应JsApi navigateBackApplication中的extraData字段数据
+            String extraData = resp.extMsg;
+            map.putString("type", "WXLaunchMiniProgramReq.Resp");
+            map.putString("extraData", extraData);
+            map.putString("extMsg", extraData);
+        } else if (baseResp instanceof ChooseCardFromWXCardPackage.Resp) {
+            ChooseCardFromWXCardPackage.Resp resp = (ChooseCardFromWXCardPackage.Resp) baseResp;
+            map.putString("type", "WXChooseInvoiceResp.Resp");
+            map.putString("cardItemList", resp.cardItemList);
+        }
+        if(promiser != null){
+            promiser.resolve(map);
+        }
+    }
+
+    public static void handleWXIntent(Intent intent) {
+        for (WechatOpensdkModule mod : modules) {
+            mod.api.handleIntent(intent, mod);
+        }
+    }
+
+    private interface ImageCallback {
+        void invoke(@Nullable Bitmap bitmap);
+    }
+
+    private interface MediaObjectCallback {
+        void invoke(@Nullable WXMediaMessage.IMediaObject mediaObject);
+    }
+}
