@@ -114,6 +114,12 @@ class WechatOpensdkModule(context: ReactApplicationContext) : NativeWechatOpensd
         modules.remove(this)
     }
 
+    // Example method
+    // See https://reactnative.dev/docs/native-modules-android
+    override fun multiply(a: Double, b: Double): Double {
+      return a * b
+    }
+
     override fun registerApp(appid: String, universal: String, promise: Promise) {
         this.appid = appid
         api = WXAPIFactory.createWXAPI(reactApplicationContext.baseContext, appid, true)
@@ -122,8 +128,7 @@ class WechatOpensdkModule(context: ReactApplicationContext) : NativeWechatOpensd
     }
 
     override fun isAppInstalled(promise: Promise) {
-        Log.d("DDFDFDFDFDFDF", "是不是 " + if (api?.isWXAppInstalled == true) "YES" else "NO")
-        promise.resolve(true)
+        promise.resolve(api!!.isWXAppInstalled)
     }
 
     override fun openApp(promise: Promise) {

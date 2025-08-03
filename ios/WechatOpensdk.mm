@@ -1,13 +1,17 @@
 #import "WechatOpensdk.h"
 
+@interface WechatOpensdk ()
+
+@end
+
 @implementation WechatOpensdk
 RCT_EXPORT_MODULE()
 
-/* - (NSNumber *)multiply:(double)a b:(double)b {
+- (NSNumber *)multiply:(double)a b:(double)b {
     NSNumber *result = @(a * b);
 
     return result;
-} */
+}
 
 - (instancetype)init
 {
@@ -28,7 +32,7 @@ RCT_EXPORT_MODULE()
     NSString * aURLString =  [aNotification userInfo][@"url"];
     NSURL * aURL = [NSURL URLWithString:aURLString];
 
-    if ([WXApi handleOpenURL:aURL delegate:(id) self])
+    if ([WXApi handleOpenURL:aURL delegate:self])
     {
         return YES;
     } else {
@@ -48,7 +52,7 @@ RCT_EXPORT_MODULE()
 /**
  首次注册微信
  */
-RCT_EXPORT_METHOD(registerApp:(NSString *)appid universalLink:(NSString *)universalLink resolver:(RCTPromiseResolveBlock)resolve rejecter:(RCTPromiseRejectBlock)reject){
+- (void)registerApp:(NSString *)appid universalLink:(NSString *)universalLink resolve:(RCTPromiseResolveBlock)resolve reject:(RCTPromiseRejectBlock)reject {
 
   // 开启微信SDK日志，如果遇到一些失败的话
 //  [WXApi startLogByLevel:WXLogLevelDetail logBlock:^(NSString *log) {
@@ -65,20 +69,20 @@ RCT_EXPORT_METHOD(registerApp:(NSString *)appid universalLink:(NSString *)univer
 //      NSLog(@"微信自检 %@, %u, %@, %@", @(step), result.success, result.errorInfo, result.suggestion);
 //  }];
 
-    resolve(@(OK));
+    resolve(@(1));
 }
 
 /**
  是否安装了微信
  */
-RCT_EXPORT_METHOD(isWXAppInstalled:(RCTPromiseResolveBlock)resolve rejecter:(RCTPromiseRejectBlock)reject){
-    resolve([WXApi isWXAppInstalled] ? @(YES) : @(NO));
+- (void)isAppInstalled:(RCTPromiseResolveBlock)resolve reject:(RCTPromiseRejectBlock)reject {
+    resolve([WXApi isWXAppInstalled] ? @(1) : @(0));
 }
 
 /**
  打开微信APP
  */
-RCT_EXPORT_METHOD(openApp:(RCTPromiseResolveBlock)resolve rejecter:(RCTPromiseRejectBlock)reject){
+- (void)openApp:(RCTPromiseResolveBlock)resolve reject:(RCTPromiseRejectBlock)reject {
   if(![WXApi openWXApp]) {
     NSLog(@"微信旧SDK打开微信失败，退回到新API");
     [[UIApplication sharedApplication] openURL:[NSURL URLWithString:@"weixin://"] options:@{} completionHandler:nil];
@@ -131,12 +135,12 @@ RCT_EXPORT_METHOD(openApp:(RCTPromiseResolveBlock)resolve rejecter:(RCTPromiseRe
 /**
  微信授权
  */
-RCT_EXPORT_METHOD(auth:(NSDictionary *)data state:(NSString *)state resolver:(RCTPromiseResolveBlock)resolve rejecter:(RCTPromiseRejectBlock)reject) {
+- (void)auth:(JS::NativeWechatOpensdk::AuthProps &)data resolve:(RCTPromiseResolveBlock)resolve reject:(RCTPromiseRejectBlock)reject {
     self.resolver = resolve;
     self.rejecter = reject;
     SendAuthReq* req = [[SendAuthReq alloc] init];
-    req.scope = data[@"scope"];
-    req.state = data[@"state"];
+    req.scope = data.scope();
+    req.state = data.state();
 
     [WXApi sendReq:req completion:^(BOOL completion){
 //        completion ? resolve(nil) : reject(@"ERROR", @"SDK Error", nil);
@@ -146,35 +150,56 @@ RCT_EXPORT_METHOD(auth:(NSDictionary *)data state:(NSString *)state resolver:(RC
 /**
  分享文件
  */
-RCT_EXPORT_METHOD(shareFile:(NSDictionary *)data resolver:(RCTPromiseResolveBlock)resolve rejecter:(RCTPromiseRejectBlock)reject) {
+- (void)shareFile:(JS::NativeWechatOpensdk::ShareFileProps &)data resolve:(RCTPromiseResolveBlock)resolve reject:(RCTPromiseRejectBlock)reject {
     self.resolver = resolve;
     self.rejecter = reject;
-    NSString *url = data[@"url"];
+    NSString *url = data.url();
     WXFileObject *file =  [[WXFileObject alloc] init];
-    file.fileExtension = data[@"ext"];
+    file.fileExtension = data.ext();
     NSData *fileData = [NSData dataWithContentsOfURL:[NSURL URLWithString: url]];
     file.fileData = fileData;
 
     WXMediaMessage *message = [WXMediaMessage message];
-    message.title = data[@"title"];
+    message.title = data.title();
     message.mediaObject = file;
 
     SendMessageToWXReq *req = [[SendMessageToWXReq alloc] init];
     req.bText = NO;
     req.message = message;
-    req.scene = [data[@"scene"] intValue];
+    auto scene = data.scene();
+    req.scene = scene.has_value() ? (int)scene.value() : 0;
 
     [WXApi sendReq:req completion:^(BOOL completion){
 //        completion ? resolve(nil) : reject(@"ERROR", @"SDK Error", nil);
     }];
 }
 
-
-// 分享图片
-RCT_EXPORT_METHOD(shareImage:(NSDictionary *)data resolver:(RCTPromiseResolveBlock)resolve rejecter:(RCTPromiseRejectBlock)reject) {
+// 分享文字
+- (void)shareText:(JS::NativeWechatOpensdk::ShareTextProps &)data resolve:(RCTPromiseResolveBlock)resolve reject:(RCTPromiseRejectBlock)reject {
     self.resolver = resolve;
     self.rejecter = reject;
-    NSString *imageUrl = data[@"imageUrl"];
+    NSString *text = data.text();
+    if (text == NULL || [text isEqual:@""]) {
+        reject(@"ERROR", @"shareText: The value of text cannot be empty.", nil);
+        return;
+    }
+
+    SendMessageToWXReq *req = [[SendMessageToWXReq alloc] init];
+    req.bText = YES;
+    req.text = text;
+    auto scene = data.scene();
+    req.scene = scene.has_value() ? (int)scene.value() : 0;
+
+    [WXApi sendReq:req completion:^(BOOL completion){
+//        completion ? resolve(nil) : reject(@"ERROR", @"SDK Error", nil);
+    }];
+}
+
+// 分享图片
+- (void)shareImage:(JS::NativeWechatOpensdk::ShareImageProps &)data resolve:(RCTPromiseResolveBlock)resolve reject:(RCTPromiseRejectBlock)reject {
+    self.resolver = resolve;
+    self.rejecter = reject;
+    NSString *imageUrl = data.imageUrl();
     if (imageUrl == NULL  || [imageUrl isEqual:@""]) {
       reject(@"ERROR", @"shareImage: The value of ImageUrl cannot be empty.", nil);
       return;
@@ -192,13 +217,12 @@ RCT_EXPORT_METHOD(shareImage:(NSDictionary *)data resolver:(RCTPromiseResolveBlo
     // 利用原图压缩出缩略图，确保缩略图大小不大于32KB
     message.thumbData = [self compressImage: image toByte:32678];
     message.mediaObject = imageObject;
-    message.title = data[@"title"];
-    message.description = data[@"description"];
 
     SendMessageToWXReq *req = [[SendMessageToWXReq alloc] init];
     req.bText = NO;
     req.message = message;
-    req.scene = [data[@"scene"] intValue];
+    auto scene = data.scene();
+    req.scene = scene.has_value() ? (int)scene.value() : 0;
 
     [WXApi sendReq:req completion:^(BOOL completion){
 //        completion ? resolve(nil) : reject(@"ERROR", @"SDK Error", nil);
@@ -206,10 +230,10 @@ RCT_EXPORT_METHOD(shareImage:(NSDictionary *)data resolver:(RCTPromiseResolveBlo
 }
 
 // 分享本地图片
-RCT_EXPORT_METHOD(shareLocalImage:(NSDictionary *)data resolver:(RCTPromiseResolveBlock)resolve rejecter:(RCTPromiseRejectBlock)reject) {
+- (void)shareLocalImage:(JS::NativeWechatOpensdk::ShareLocalImageProps &)data resolve:(RCTPromiseResolveBlock)resolve reject:(RCTPromiseRejectBlock)reject {
     self.resolver = resolve;
     self.rejecter = reject;
-    NSString *imageUrl = data[@"imageUrl"];
+    NSString *imageUrl = data.imageUrl();
     if (imageUrl == NULL  || [imageUrl isEqual:@""]) {
     reject(@"ERROR", @"shareImage: The value of ImageUrl cannot be empty.", nil);
       return;
@@ -227,13 +251,12 @@ RCT_EXPORT_METHOD(shareLocalImage:(NSDictionary *)data resolver:(RCTPromiseResol
     // 利用原图压缩出缩略图，确保缩略图大小不大于32KB
     message.thumbData = [self compressImage: image toByte:32678];
     message.mediaObject = imageObject;
-    message.title = data[@"title"];
-    message.description = data[@"description"];
 
     SendMessageToWXReq *req = [[SendMessageToWXReq alloc] init];
     req.bText = NO;
     req.message = message;
-    req.scene = [data[@"scene"] intValue];
+    auto scene = data.scene();
+    req.scene = scene.has_value() ? (int)scene.value() : 0;
 
     [WXApi sendReq:req completion:^(BOOL completion){
 //        completion ? resolve(nil) : reject(@"ERROR", @"SDK Error", nil);
@@ -241,19 +264,19 @@ RCT_EXPORT_METHOD(shareLocalImage:(NSDictionary *)data resolver:(RCTPromiseResol
 }
 
 // 分享音乐
-RCT_EXPORT_METHOD(shareMusic:(NSDictionary *)data resolver:(RCTPromiseResolveBlock)resolve rejecter:(RCTPromiseRejectBlock)reject) {
+- (void)shareMusic:(JS::NativeWechatOpensdk::ShareMusicProps &)data resolve:(RCTPromiseResolveBlock)resolve reject:(RCTPromiseRejectBlock)reject {
     self.resolver = resolve;
     self.rejecter = reject;
     WXMusicObject *musicObject = [WXMusicObject object];
-    musicObject.musicUrl = data[@"musicUrl"];
-    musicObject.musicLowBandUrl = data[@"musicLowBandUrl"];
-    musicObject.musicDataUrl = data[@"musicDataUrl"];
-    musicObject.musicLowBandDataUrl = data[@"musicLowBandDataUrl"];
+    musicObject.musicUrl = data.musicUrl();
+    musicObject.musicLowBandUrl = data.musicLowBandUrl();
+    musicObject.musicDataUrl = data.musicDataUrl();
+    musicObject.musicLowBandDataUrl = data.musicLowBandDataUrl();
 
     WXMediaMessage *message = [WXMediaMessage message];
-    message.title = data[@"title"];
-    message.description = data[@"description"];
-    NSString *thumbImageUrl = data[@"thumbImageUrl"];
+    message.title = data.title();
+    message.description = data.description();
+    NSString *thumbImageUrl = data.thumbImageUrl();
     if (thumbImageUrl != NULL && ![thumbImageUrl isEqual:@""]) {
       // 根据路径下载图片
       UIImage *image = [self getImageFromURL:thumbImageUrl];
@@ -263,7 +286,8 @@ RCT_EXPORT_METHOD(shareMusic:(NSDictionary *)data resolver:(RCTPromiseResolveBlo
     SendMessageToWXReq *req = [[SendMessageToWXReq alloc] init];
     req.bText = NO;
     req.message = message;
-    req.scene = [data[@"scene"] intValue];
+    auto scene = data.scene();
+    req.scene = scene.has_value() ? (int)scene.value() : 0;
 
     [WXApi sendReq:req completion:^(BOOL completion){
 //        completion ? resolve(nil) : reject(@"ERROR", @"SDK Error", nil);
@@ -271,16 +295,16 @@ RCT_EXPORT_METHOD(shareMusic:(NSDictionary *)data resolver:(RCTPromiseResolveBlo
 }
 
 // 分享视频
-RCT_EXPORT_METHOD(shareVideo:(NSDictionary *)data resolver:(RCTPromiseResolveBlock)resolve rejecter:(RCTPromiseRejectBlock)reject) {
+- (void)shareVideo:(JS::NativeWechatOpensdk::ShareVideoProps &)data resolve:(RCTPromiseResolveBlock)resolve reject:(RCTPromiseRejectBlock)reject {
     self.resolver = resolve;
     self.rejecter = reject;
     WXVideoObject *videoObject = [WXVideoObject object];
-    videoObject.videoUrl = data[@"videoUrl"];
-    videoObject.videoLowBandUrl = data[@"videoLowBandUrl"];
+    videoObject.videoUrl = data.videoUrl();
+    videoObject.videoLowBandUrl = data.videoLowBandUrl();
     WXMediaMessage *message = [WXMediaMessage message];
-    message.title = data[@"title"];
-    message.description = data[@"description"];
-    NSString *thumbImageUrl = data[@"thumbImageUrl"];
+    message.title = data.title();
+    message.description = data.description();
+    NSString *thumbImageUrl = data.thumbImageUrl();
     if (thumbImageUrl != NULL && ![thumbImageUrl isEqual:@""]) {
       UIImage *image = [self getImageFromURL:thumbImageUrl];
       message.thumbData = [self compressImage: image toByte:32678];
@@ -289,7 +313,8 @@ RCT_EXPORT_METHOD(shareVideo:(NSDictionary *)data resolver:(RCTPromiseResolveBlo
     SendMessageToWXReq *req = [[SendMessageToWXReq alloc] init];
     req.bText = NO;
     req.message = message;
-    req.scene = [data[@"scene"] intValue];
+    auto scene = data.scene();
+    req.scene = scene.has_value() ? (int)scene.value() : 0;
 
     [WXApi sendReq:req completion:^(BOOL completion){
 //        completion ? resolve(nil) : reject(@"ERROR", @"SDK Error", nil);
@@ -297,15 +322,15 @@ RCT_EXPORT_METHOD(shareVideo:(NSDictionary *)data resolver:(RCTPromiseResolveBlo
 }
 
 // 分享网页
-RCT_EXPORT_METHOD(shareWebpage:(NSDictionary *)data resolver:(RCTPromiseResolveBlock)resolve rejecter:(RCTPromiseRejectBlock)reject) {
+- (void)shareWebpage:(JS::NativeWechatOpensdk::ShareWebpageProps &)data resolve:(RCTPromiseResolveBlock)resolve reject:(RCTPromiseRejectBlock)reject {
     self.resolver = resolve;
     self.rejecter = reject;
     WXWebpageObject *webpageObject = [WXWebpageObject object];
-    webpageObject.webpageUrl = data[@"webpageUrl"];
+    webpageObject.webpageUrl = data.webpageUrl();
     WXMediaMessage *message = [WXMediaMessage message];
-    message.title = data[@"title"];
-    message.description = data[@"description"];
-    NSString *thumbImageUrl = data[@"thumbImageUrl"];
+    message.title = data.title();
+    message.description = data.description();
+    NSString *thumbImageUrl = data.thumbImageUrl();
     if (thumbImageUrl != NULL && ![thumbImageUrl isEqual:@""]) {
       UIImage *image = [self getImageFromURL:thumbImageUrl];
       message.thumbData = [self compressImage: image toByte:32678];
@@ -314,7 +339,8 @@ RCT_EXPORT_METHOD(shareWebpage:(NSDictionary *)data resolver:(RCTPromiseResolveB
     SendMessageToWXReq *req = [[SendMessageToWXReq alloc] init];
     req.bText = NO;
     req.message = message;
-    req.scene = [data[@"scene"] intValue];
+    auto scene = data.scene();
+    req.scene = scene.has_value() ? (int)scene.value() : 0;
 
     [WXApi sendReq:req completion:^(BOOL completion){
 //        completion ? resolve(nil) : reject(@"ERROR", @"SDK Error", nil);
@@ -322,28 +348,29 @@ RCT_EXPORT_METHOD(shareWebpage:(NSDictionary *)data resolver:(RCTPromiseResolveB
 }
 
 // 分享小程序
-RCT_EXPORT_METHOD(shareMiniProgram:(NSDictionary *)data resolver:(RCTPromiseResolveBlock)resolve rejecter:(RCTPromiseRejectBlock)reject) {
+- (void)shareMiniProgram:(JS::NativeWechatOpensdk::ShareMiniProgramProps &)data resolve:(RCTPromiseResolveBlock)resolve reject:(RCTPromiseRejectBlock)reject {
     self.resolver = resolve;
     self.rejecter = reject;
     WXMiniProgramObject *object = [WXMiniProgramObject object];
-    object.webpageUrl = data[@"webpageUrl"];
-    object.userName = data[@"userName"];
-    object.path = data[@"path"];
-    NSString *hdImageUrl = data[@"hdImageUrl"];
+    object.webpageUrl = data.webpageUrl();
+    object.userName = data.userName();
+    object.path = data.path();
+    NSString *hdImageUrl = data.hdImageUrl();
     if (hdImageUrl != NULL && ![hdImageUrl isEqual:@""]) {
       UIImage *image = [self getImageFromURL:hdImageUrl];
       // 压缩图片到小于128KB
       object.hdImageData = [self compressImage: image toByte:131072];
     }
-    object.withShareTicket = data[@"withShareTicket"];
-    int miniProgramType = [data[@"miniProgramType"] integerValue];
-    object.miniProgramType = [self integerToWXMiniProgramType:miniProgramType];
+    object.withShareTicket = data.withShareTicket();
+    auto miniProgramType = data.miniProgramType();
+    int miniProgramTypeValue = miniProgramType.has_value() ? (int)miniProgramType.value() : 0;
+    object.miniProgramType = [self integerToWXMiniProgramType:miniProgramTypeValue];
     WXMediaMessage *message = [WXMediaMessage message];
-    message.title = data[@"title"];
-    message.description = data[@"description"];
+    message.title = data.title();
+    message.description = data.description();
     //兼容旧版本节点的图片，小于32KB，新版本优先
     //使用WXMiniProgramObject的hdImageData属性
-    NSString *thumbImageUrl = data[@"thumbImageUrl"];
+    NSString *thumbImageUrl = data.thumbImageUrl();
     if (thumbImageUrl != NULL && ![thumbImageUrl isEqual:@""]) {
       UIImage *image = [self getImageFromURL:thumbImageUrl];
       message.thumbData = [self compressImage: image toByte:32678];
@@ -352,7 +379,8 @@ RCT_EXPORT_METHOD(shareMiniProgram:(NSDictionary *)data resolver:(RCTPromiseReso
     SendMessageToWXReq *req = [[SendMessageToWXReq alloc] init];
     req.bText = NO;
     req.message = message;
-    req.scene = [data[@"scene"] integerValue];
+    auto scene = data.scene();
+    req.scene = scene.has_value() ? (int)scene.value() : 0;
 
     [WXApi sendReq:req completion:^(BOOL completion){
 //        completion ? resolve(nil) : reject(@"ERROR", @"SDK Error", nil);
@@ -362,18 +390,18 @@ RCT_EXPORT_METHOD(shareMiniProgram:(NSDictionary *)data resolver:(RCTPromiseReso
 /**
  启动小程序
  */
-RCT_EXPORT_METHOD(launchMiniProgram:(NSDictionary *)data resolver:(RCTPromiseResolveBlock)resolve rejecter:(RCTPromiseRejectBlock)reject) {
+- (void)launchMiniProgram:(JS::NativeWechatOpensdk::LaunchMiniProgramProps &)data resolve:(RCTPromiseResolveBlock)resolve reject:(RCTPromiseRejectBlock)reject {
     self.resolver = resolve;
     self.rejecter = reject;
     WXLaunchMiniProgramReq *launchMiniProgramReq = [WXLaunchMiniProgramReq object];
     // 拉起的小程序的username
-    launchMiniProgramReq.userName = data[@"userName"];
+    launchMiniProgramReq.userName = data.userName();
     // 拉起小程序页面的可带参路径，不填默认拉起小程序首页
-    launchMiniProgramReq.path = data[@"path"];
+    launchMiniProgramReq.path = data.path();
     // 拉起小程序的类型
-    int miniProgramType = [data[@"miniProgramType"] integerValue];
-    launchMiniProgramReq.miniProgramType = [self integerToWXMiniProgramType:miniProgramType];
-    // launchMiniProgramReq.miniProgramType = [data[@"miniProgramType"] integerValue];
+    auto miniProgramType = data.miniProgramType();
+    int miniProgramTypeValue = miniProgramType.has_value() ? (int)miniProgramType.value() : 0;
+    launchMiniProgramReq.miniProgramType = [self integerToWXMiniProgramType:miniProgramTypeValue];
 
     [WXApi sendReq:launchMiniProgramReq completion:^(BOOL completion){
 //        completion ? resolve(nil) : reject(@"ERROR", @"SDK Error", nil);
@@ -383,7 +411,7 @@ RCT_EXPORT_METHOD(launchMiniProgram:(NSDictionary *)data resolver:(RCTPromiseRes
 /**
  一次性订阅消息
  */
-RCT_EXPORT_METHOD(subscribeMessage:(NSDictionary *)data resolver:(RCTPromiseResolveBlock)resolve rejecter:(RCTPromiseRejectBlock)reject) {
+- (void)subscribeMessage:(NSDictionary *)data resolve:(RCTPromiseResolveBlock)resolve reject:(RCTPromiseRejectBlock)reject {
     self.resolver = resolve;
     self.rejecter = reject;
     WXSubscribeMsgReq *req = [[WXSubscribeMsgReq alloc] init];
@@ -399,16 +427,16 @@ RCT_EXPORT_METHOD(subscribeMessage:(NSDictionary *)data resolver:(RCTPromiseReso
 /**
  微信支付
  */
-RCT_EXPORT_METHOD(pay:(NSDictionary *)data resolver:(RCTPromiseResolveBlock)resolve rejecter:(RCTPromiseRejectBlock)reject) {
+- (void)pay:(JS::NativeWechatOpensdk::PayProps &)data resolve:(RCTPromiseResolveBlock)resolve reject:(RCTPromiseRejectBlock)reject {
     self.resolver = resolve;
     self.rejecter = reject;
     PayReq* req             = [PayReq new];
-    req.partnerId           = data[@"partnerId"];
-    req.prepayId            = data[@"prepayId"];
-    req.nonceStr            = data[@"nonceStr"];
-    req.timeStamp           = [data[@"timeStamp"] unsignedIntValue];
-    req.package             = data[@"package"];
-    req.sign                = data[@"sign"];
+    req.partnerId           = data.partnerId();
+    req.prepayId            = data.prepayId();
+    req.nonceStr            = data.nonceStr();
+    req.timeStamp           = [data.timeStamp() longLongValue];
+    req.package             = data.package();
+    req.sign                = data.sign();
 
 
     [WXApi sendReq:req completion:^(BOOL completion){
@@ -417,15 +445,16 @@ RCT_EXPORT_METHOD(pay:(NSDictionary *)data resolver:(RCTPromiseResolveBlock)reso
 }
 
 // 选择发票
-RCT_EXPORT_METHOD(chooseInvoice:(NSDictionary *)data resolver:(RCTPromiseResolveBlock)resolve rejecter:(RCTPromiseRejectBlock)reject) {
+- (void)chooseInvoice:(JS::NativeWechatOpensdk::ChooseInvoiceProps &)data resolve:(RCTPromiseResolveBlock)resolve reject:(RCTPromiseRejectBlock)reject {
     self.resolver = resolve;
     self.rejecter = reject;
     WXChooseInvoiceReq *req = [[WXChooseInvoiceReq alloc] init];
     req.appID = self.appId;
-    req.timeStamp = [data[@"timeStamp"] intValue];
-    req.nonceStr = data[@"nonceStr"];
-    req.cardSign = data[@"cardSign"];
-    req.signType = data[@"signType"];
+    auto timeStamp = data.timeStamp();
+    req.timeStamp = timeStamp.has_value() ? (int)timeStamp.value() : 0;
+    req.nonceStr = data.nonceStr();
+    req.cardSign = data.cardSign();
+    req.signType = data.signType();
 
     [WXApi sendReq:req completion:^(BOOL completion){
 //        completion ? resolve(nil) : reject(@"ERROR", @"SDK Error", nil);
@@ -436,12 +465,12 @@ RCT_EXPORT_METHOD(chooseInvoice:(NSDictionary *)data resolver:(RCTPromiseResolve
 /**
  唤醒客服
  */
-RCT_EXPORT_METHOD(customerService:(NSDictionary *)data resolver:(RCTPromiseResolveBlock)resolve rejecter:(RCTPromiseRejectBlock)reject) {
+- (void)customerService:(JS::NativeWechatOpensdk::CustomerServiceProps &)data resolve:(RCTPromiseResolveBlock)resolve reject:(RCTPromiseRejectBlock)reject {
     self.resolver = resolve;
     self.rejecter = reject;
     WXOpenCustomerServiceReq *req = [[WXOpenCustomerServiceReq alloc] init];
-    req.corpid = data[@"corpId"];
-    req.url = data[@"url"];
+    req.corpid = data.corpId();
+    req.url = data.url();
 
 
     [WXApi sendReq:req completion:^(BOOL completion){
@@ -551,6 +580,7 @@ RCT_EXPORT_METHOD(customerService:(NSDictionary *)data resolver:(RCTPromiseResol
 
 -(void) onReq:(BaseReq*)req
 {
+  NSLog(@"收到 onReq");
 //    if ([req isKindOfClass:[LaunchFromWXReq class]]) {
 //        LaunchFromWXReq *launchReq = req;
 //        NSString *appParameter = launchReq.message.messageExt;
@@ -559,7 +589,6 @@ RCT_EXPORT_METHOD(customerService:(NSDictionary *)data resolver:(RCTPromiseResol
 //        body[@"lang"] =  launchReq.lang;
 //        body[@"country"] = launchReq.country;
 //        body[@"extMsg"] = appParameter;
-//        [self.bridge.eventDispatcher sendDeviceEventWithName:RCTWXEventNameWeChatReq body:body];
 //    }
 }
 
@@ -572,17 +601,16 @@ RCT_EXPORT_METHOD(customerService:(NSDictionary *)data resolver:(RCTPromiseResol
         NSMutableDictionary *body = @{@"errCode":@(r.errCode)}.mutableCopy;
         body[@"errStr"] = r.errStr;
         body[@"lang"] = r.lang;
-        body[@"country"] =r.country;
-        body[@"type"] = @"SendMessageToWX.Resp";
+        body[@"country"] = r.country;
         resp.errCode == WXSuccess ? self.resolver(body) : self.rejecter(@"ERROR", resp.errStr, nil);
     }else if ([resp isKindOfClass:[SendAuthResp class]]) {
+      NSLog(@"SendAuthResp OK");
         SendAuthResp *r = (SendAuthResp *)resp;
         NSMutableDictionary *body = @{@"errCode":@(r.errCode)}.mutableCopy;
         body[@"errStr"] = r.errStr;
         body[@"state"] = r.state;
         body[@"lang"] = r.lang;
-        body[@"country"] =r.country;
-        body[@"type"] = @"SendAuth.Resp";
+        body[@"country"] = r.country;
 
         if (resp.errCode == WXSuccess) {
             if (self.appId && r) {
@@ -599,15 +627,13 @@ RCT_EXPORT_METHOD(customerService:(NSDictionary *)data resolver:(RCTPromiseResol
         NSMutableDictionary *body = @{@"errCode":@(r.errCode)}.mutableCopy;
         body[@"errStr"] = r.errStr;
         body[@"type"] = @(r.type);
-        body[@"returnKey"] =r.returnKey;
-        body[@"type"] = @"PayReq.Resp";
+        body[@"returnKey"] = r.returnKey;
         resp.errCode == WXSuccess ? self.resolver(body) : self.rejecter(@"ERROR", resp.errStr, nil);
     } else if ([resp isKindOfClass:[WXLaunchMiniProgramResp class]]){
         WXLaunchMiniProgramResp *r = (WXLaunchMiniProgramResp *)resp;
         NSMutableDictionary *body = @{@"errCode":@(r.errCode)}.mutableCopy;
         body[@"errStr"] = r.errStr;
         body[@"extMsg"] = r.extMsg;
-        body[@"type"] = @"WXLaunchMiniProgramReq.Resp";
         resp.errCode == WXSuccess ? self.resolver(body) : self.rejecter(@"ERROR", resp.errStr, nil);
     } else if ([resp isKindOfClass:[WXChooseInvoiceResp class]]){
         WXChooseInvoiceResp *r = (WXChooseInvoiceResp *)resp;
@@ -619,7 +645,6 @@ RCT_EXPORT_METHOD(customerService:(NSDictionary *)data resolver:(RCTPromiseResol
             [arr addObject:item];
         }
         body[@"cards"] = arr;
-        body[@"type"] = @"WXChooseInvoiceResp.Resp";
         resp.errCode == WXSuccess ? self.resolver(body) : self.rejecter(@"ERROR", resp.errStr, nil);
     }
 }

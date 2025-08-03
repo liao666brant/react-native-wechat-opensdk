@@ -124,8 +124,7 @@ public class WechatOpensdkModule extends NativeWechatOpensdkSpec implements IWXA
 
     @ReactMethod
     public void isAppInstalled(Promise promise) {
-    Log.d("DDFDFDFDFDFDF", "是不是 " + (api.isWXAppInstalled() ? "YES" : "NO"));
-        promise.resolve(true);
+        promise.resolve(api.isWXAppInstalled());
     }
 
     @ReactMethod

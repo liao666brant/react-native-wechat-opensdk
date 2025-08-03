@@ -2,43 +2,36 @@ import type { TurboModule } from 'react-native';
 import { TurboModuleRegistry } from 'react-native';
 
 export interface Spec extends TurboModule {
-  // multiply(a: number, b: number): number;
+  multiply(a: number, b: number): number;
   isAppInstalled: () => Promise<boolean>;
   registerApp: (appid: string, universalLink: string) => Promise<boolean>;
   openApp: () => Promise<void>;
-  auth: (data: AuthProps) => Promise<AuthResponse>;
-  shareFile: (data: ShareFileProps) => Promise<any>;
-  shareLocalImage: (data: ShareLocalImageProps) => Promise<any>;
-  shareText: (data: ShareTextProps) => Promise<any>;
-  shareWebpage: (data: ShareWebpageProps) => Promise<any>;
-  shareImage: (data: ShareImageProps) => Promise<any>;
-  shareVideo: (data: ShareVideoProps) => Promise<any>;
-  shareMusic: (data: ShareMusicProps) => Promise<any>;
-  pay: (data: PayProps) => Promise<any>;
-  customerService: (data: CustomerServiceProps) => Promise<any>;
-  chooseInvoice: (data: ChooseInvoiceProps) => Promise<any>;
-  shareMiniProgram: (data: ShareMiniProgramProps) => Promise<any>;
-  launchMiniProgram: (data: LaunchMiniProgramProps) => Promise<any>;
+  auth: (data: AuthProps) => Promise<AuthResult>;
+  shareFile: (data: ShareFileProps) => Promise<ShareResult>;
+  shareLocalImage: (data: ShareLocalImageProps) => Promise<ShareResult>;
+  shareText: (data: ShareTextProps) => Promise<ShareResult>;
+  shareWebpage: (data: ShareWebpageProps) => Promise<ShareResult>;
+  shareImage: (data: ShareImageProps) => Promise<ShareResult>;
+  shareVideo: (data: ShareVideoProps) => Promise<ShareResult>;
+  shareMusic: (data: ShareMusicProps) => Promise<ShareResult>;
+  shareMiniProgram: (data: ShareMiniProgramProps) => Promise<ShareResult>;
+  pay: (data: PayProps) => Promise<PayResult>;
+  customerService: (data: CustomerServiceProps) => Promise<void>;
+  chooseInvoice: (data: ChooseInvoiceProps) => Promise<ChooseInvoiceResult>;
+  launchMiniProgram: (data: LaunchMiniProgramProps) => Promise<void>;
 }
 
 export default TurboModuleRegistry.getEnforcing<Spec>('WechatOpensdk');
 
 export interface AuthProps {
   state: string;
-  scope: string;
-}
-export interface AuthResponse {
-  type: string;
-  code: string;
-  state: string;
-  lang: string;
-  country: string;
-  url?: string;
+  scope?: string;
 }
 
 export interface ShareFileProps {
   url: string;
-  title: string;
+  title?: string;
+  ext?: string;
   scene?: WXScene;
 }
 
@@ -136,4 +129,41 @@ export enum WXScene {
   WXSceneSpecifiedSession = 3,
   /* 状态   */
   WXSceneState = 4,
+}
+
+
+export interface BasicResult {
+  errCode: number;
+  errStr: string;
+}
+export interface AuthResult extends BasicResult{
+  state: string;
+  lang: string;
+  country: string;
+  appid: string;
+  code: string;
+}
+
+export interface ShareResult extends BasicResult {
+  lang: string;
+  country: string;
+}
+
+export interface PayResult extends BasicResult {
+  /**
+   * 响应类型
+   */
+  type: string;
+  /**
+   * 财付通返回给商家的信息
+   */
+  returnKey: string;
+}
+
+export interface ChooseInvoiceResult extends BasicResult {
+  cards: {
+    cardId: string;
+    encryptCode: string;
+    appID: string;
+  }[];
 }
