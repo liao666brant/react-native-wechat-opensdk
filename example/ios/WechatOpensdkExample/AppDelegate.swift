@@ -46,3 +46,11 @@ class ReactNativeDelegate: RCTDefaultReactNativeFactoryDelegate {
 #endif
   }
 }
+
+
+/**
+ 继承微信开放平台
+ */
+extension AppDelegate: WXApiDelegate{
+
+}
