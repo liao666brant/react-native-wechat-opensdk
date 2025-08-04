@@ -71,5 +71,24 @@ class ReactNativeDelegate: RCTDefaultReactNativeFactoryDelegate {
  继承微信开放平台
  */
 extension AppDelegate: WXApiDelegate {
-
+  
+  func onReq(_ req: BaseReq) {
+    NSLog("AppDelegate 收到 onReq")
+    // 发送通知给 WechatOpensdk 模块
+    NotificationCenter.default.post(
+      name: NSNotification.Name("WechatOpensdkReq"),
+      object: nil,
+      userInfo: ["req": req]
+    )
+  }
+  
+  func onResp(_ resp: BaseResp) {
+    NSLog("AppDelegate 收到 onResp")
+    // 发送通知给 WechatOpensdk 模块
+    NotificationCenter.default.post(
+      name: NSNotification.Name("WechatOpensdkResp"),
+      object: nil,
+      userInfo: ["resp": resp]
+    )
+  }
 }
