@@ -588,7 +588,7 @@ RCT_EXPORT_MODULE()
 
 #pragma mark - wx callback
 
--(void) onReq:(BaseReq*)req
+- (void) onReq:(BaseReq*)req
 {
   NSLog(@"收到 onReq");
 //    if ([req isKindOfClass:[LaunchFromWXReq class]]) {
@@ -602,7 +602,7 @@ RCT_EXPORT_MODULE()
 //    }
 }
 
--(void) onResp:(BaseResp*)resp
+- (void) onResp:(BaseResp*)resp
 {
     if([resp isKindOfClass:[SendMessageToWXResp class]])
     {

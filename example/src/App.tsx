@@ -12,7 +12,7 @@ export default function App() {
   }, []);
 
   async function init() {
-    await Wechat.registerApp('wx1ad80ac9a07dxxx', 'https://app.example.com/api/');
+    await Wechat.registerApp('wx1ad80ac9a07dceef', 'https://app.51wopai.com/api/');
     const YN = await Wechat.isAppInstalled();
     setYN(YN);
   }
@@ -20,17 +20,17 @@ export default function App() {
   async function shareText(){
     // await Wechat.openApp();
     // return;
-    const res = await Wechat.shareFile({
-      url: 'https://reactnative.dev/docs/assets/turbo-native-modules/c++visualstudiocode.webp',
-    })
+    // const res = await Wechat.shareFile({
+    //   url: 'https://reactnative.dev/docs/assets/turbo-native-modules/c++visualstudiocode.webp',
+    // })
 
     // const res = await Wechat.auth({
     //   scope: 'snsapi_userinfo',
     //   state: "123",
     // })
-    // const res = await Wechat.shareText({
-    //   text: "分享文本",
-    // })
+    const res = await Wechat.shareText({
+      text: "分享文本",
+    })
     // const res = await Wechat.shareImage({
     //   imageUrl: "https://reactnative.dev/docs/assets/turbo-native-modules/c++visualstudiocode.webp",
     // })

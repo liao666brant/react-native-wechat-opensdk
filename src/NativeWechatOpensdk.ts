@@ -92,11 +92,12 @@ export interface CustomerServiceProps {
   url: string;
 }
 
+// ios 什么都不填都可以，android可以填写以下假的内容都可以正常运行，具体参数获取可以去看微信文档
 export interface ChooseInvoiceProps {
-  signType: string;
-  nonceStr: string;
-  timeStamp: number;
-  cardSign: string;
+  signType?: string;
+  nonceStr?: string;
+  timeStamp?: number;
+  cardSign?: string;
 }
 
 export interface ShareMiniProgramProps {
