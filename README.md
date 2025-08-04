@@ -55,7 +55,6 @@ yarn add react-native-wechat-opensdk
        <application>
         <activity android:name=".wxapi.WXEntryActivity" android:label="@string/app_name" android:theme="@android:style/Theme.Translucent.NoTitleBar" android:exported="true" android:taskAffinity="YOUR_PACKAGE" android:launchMode="singleTask"/>
         <activity android:name=".wxapi.WXPayEntryActivity" android:label="@string/app_name" android:theme="@android:style/Theme.Translucent.NoTitleBar" android:exported="true" android:taskAffinity="YOUR_PACKAGE" android:launchMode="singleTask"/>
-
        </application>
     </manifest>
     ```
