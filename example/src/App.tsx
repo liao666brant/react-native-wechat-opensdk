@@ -24,13 +24,13 @@ export default function App() {
     //   url: 'https://reactnative.dev/docs/assets/turbo-native-modules/c++visualstudiocode.webp',
     // })
 
-    // const res = await Wechat.auth({
-    //   scope: 'snsapi_userinfo',
-    //   state: "123",
-    // })
-    const res = await Wechat.shareText({
-      text: "分享文本",
+    const res = await Wechat.auth({
+      scope: 'snsapi_userinfo',
+      state: "123",
     })
+    // const res = await Wechat.shareText({
+    //   text: "分享文本",
+    // })
     // const res = await Wechat.shareImage({
     //   imageUrl: "https://reactnative.dev/docs/assets/turbo-native-modules/c++visualstudiocode.webp",
     // })
