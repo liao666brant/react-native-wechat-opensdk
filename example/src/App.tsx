@@ -12,7 +12,7 @@ export default function App() {
   }, []);
 
   async function init() {
-    await Wechat.registerApp('wx1ad80ac9a07dceef', 'https://app.example.com/api/');
+    await Wechat.registerApp('wx1ad80ac9a07dxxx', 'https://app.example.com/api/');
     const YN = await Wechat.isAppInstalled();
     setYN(YN);
   }
