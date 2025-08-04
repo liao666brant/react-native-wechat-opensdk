@@ -2,6 +2,7 @@ import UIKit
 import React
 import React_RCTAppDelegate
 import ReactAppDependencyProvider
+import WechatOpenSDK
 
 @main
 class AppDelegate: UIResponder, UIApplicationDelegate {
@@ -31,6 +32,25 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
 
     return true
   }
+
+  // MARK: - URL Handling for WeChat Callbacks
+  func application(_ app: UIApplication, open url: URL, options: [UIApplication.OpenURLOptionsKey : Any] = [:]) -> Bool {
+    return WXApi.handleOpen(url, delegate: self)
+  }
+
+  func application(_ application: UIApplication, handleOpen url: URL) -> Bool {
+    return WXApi.handleOpen(url, delegate: self)
+  }
+
+  // For iOS 9.0+
+  func application(_ application: UIApplication, open url: URL, sourceApplication: String?, annotation: Any) -> Bool {
+    return WXApi.handleOpen(url, delegate: self)
+  }
+
+  // Universal Links support
+  func application(_ application: UIApplication, continue userActivity: NSUserActivity, restorationHandler: @escaping ([UIUserActivityRestoring]?) -> Void) -> Bool {
+    return WXApi.handleOpenUniversalLink(userActivity, delegate: self)
+  }
 }
 
 class ReactNativeDelegate: RCTDefaultReactNativeFactoryDelegate {
@@ -51,6 +71,6 @@ class ReactNativeDelegate: RCTDefaultReactNativeFactoryDelegate {
 /**
  继承微信开放平台
  */
-extension AppDelegate: WXApiDelegate{
+extension AppDelegate: WXApiDelegate {
 
 }

@@ -8,17 +8,17 @@ export interface Spec extends TurboModule {
   openApp: () => Promise<void>;
   auth: (data: AuthProps) => Promise<AuthResult>;
   shareFile: (data: ShareFileProps) => Promise<ShareResult>;
-  shareLocalImage: (data: ShareLocalImageProps) => Promise<ShareResult>;
   shareText: (data: ShareTextProps) => Promise<ShareResult>;
   shareWebpage: (data: ShareWebpageProps) => Promise<ShareResult>;
   shareImage: (data: ShareImageProps) => Promise<ShareResult>;
+  shareLocalImage: (data: ShareLocalImageProps) => Promise<ShareResult>;
   shareVideo: (data: ShareVideoProps) => Promise<ShareResult>;
   shareMusic: (data: ShareMusicProps) => Promise<ShareResult>;
   shareMiniProgram: (data: ShareMiniProgramProps) => Promise<ShareResult>;
+  launchMiniProgram: (data: LaunchMiniProgramProps) => Promise<void>;
   pay: (data: PayProps) => Promise<PayResult>;
   customerService: (data: CustomerServiceProps) => Promise<void>;
   chooseInvoice: (data: ChooseInvoiceProps) => Promise<ChooseInvoiceResult>;
-  launchMiniProgram: (data: LaunchMiniProgramProps) => Promise<void>;
 }
 
 export default TurboModuleRegistry.getEnforcing<Spec>('WechatOpensdk');
@@ -93,10 +93,10 @@ export interface CustomerServiceProps {
 }
 
 export interface ChooseInvoiceProps {
-  signType?: string;
-  nonceStr?: string;
-  timeStamp?: number;
-  cardSign?: string;
+  signType: string;
+  nonceStr: string;
+  timeStamp: number;
+  cardSign: string;
 }
 
 export interface ShareMiniProgramProps {
@@ -132,21 +132,30 @@ export enum WXScene {
 }
 
 
+
+
+
+
+
+
+
+
 export interface BasicResult {
   errCode: number;
-  errStr: string;
+  errStr?: string;
 }
-export interface AuthResult extends BasicResult{
-  state: string;
+
+export interface AuthResult extends BasicResult {
+  code: string;
   lang: string;
   country: string;
   appid: string;
-  code: string;
+  state?: string;
 }
 
 export interface ShareResult extends BasicResult {
-  lang: string;
-  country: string;
+  lang?: string;
+  country?: string;
 }
 
 export interface PayResult extends BasicResult {

@@ -1,43 +1,52 @@
 import React from 'react';
 import {Text, View, StyleSheet, Pressable} from 'react-native';
-import * as Wechat from 'react-native-wechat-opensdk';
+import Wechat from 'react-native-wechat-opensdk';
 
 export default function App() {
   const [YN, setYN] = React.useState(false);
 
-  const result = Wechat.multiply(3, 8);
+  const result = Wechat.multiply(3, 7);
 
   React.useEffect(() => {
     init();
   }, []);
 
   async function init() {
-    const YN = await Wechat.registerApp('wx1ad80ac9a07dceef', 'https://app.51wopai.com/api/');
+    await Wechat.registerApp('wx1ad80ac9a07dceef', 'https://app.example.com/api/');
+    const YN = await Wechat.isAppInstalled();
     setYN(YN);
   }
 
   async function shareText(){
     // await Wechat.openApp();
     // return;
-    // await Wechat.shareFile({
-    //   url: 'https://img.51wopai.com/storage/upload/2023/12/14/WqvFZiTk6DU2ctoy2SGr5YXG1u5oGRTVzovrgp0e.jpg',
-    //   title: '是大丰收',
-    //   ext: 'jpg',
-    // })
-
-    const res = await Wechat.auth({
-      scope: 'snsapi_userinfo',
-      state: "123",
+    const res = await Wechat.shareFile({
+      url: 'https://reactnative.dev/docs/assets/turbo-native-modules/c++visualstudiocode.webp',
     })
+
+    // const res = await Wechat.auth({
+    //   scope: 'snsapi_userinfo',
+    //   state: "123",
+    // })
+    // const res = await Wechat.shareText({
+    //   text: "分享文本",
+    // })
+    // const res = await Wechat.shareImage({
+    //   imageUrl: "https://reactnative.dev/docs/assets/turbo-native-modules/c++visualstudiocode.webp",
+    // })
+    // const res = await Wechat.shareVideo({
+    //   videoUrl: "https://reactnative.dev/docs/assets/turbo-native-modules/c++visualstudiocode.webp",
+    //   title: '水淀粉',
+    // })
     console.log('222返回值', res)
   }
 
   return (
     <View style={styles.container}>
-      <Text style={{color: '#FFFFFF'}}>Result: {result}</Text>
-      <Text style={{color: '#FFFFFF'}}>Result: {YN ? 'yes' : 'no'}</Text>
+      <Text style={{color: '#FF0000'}}>Result: {result}</Text>
+      <Text style={{color: '#FF0000'}}>Result: {YN ? 'yes' : 'no'}</Text>
 
-      <Pressable onPress={() => shareText()}><Text style={{color: '#FFFFFF'}}>分享文字</Text></Pressable>
+      <Pressable onPress={() => shareText()}><Text style={{color: '#FF0000'}}>分享文字</Text></Pressable>
     </View>
   );
 }

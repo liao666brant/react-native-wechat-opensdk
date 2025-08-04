@@ -612,7 +612,6 @@ class WechatOpensdkModule(context: ReactApplicationContext) : NativeWechatOpensd
         map.putString("transaction", baseResp.transaction)
         when (baseResp) {
             is SendAuth.Resp -> {
-                map.putString("type", "SendAuth.Resp")
                 map.putString("code", baseResp.code)
                 map.putString("state", baseResp.state)
                 map.putString("url", baseResp.url)
@@ -620,10 +619,9 @@ class WechatOpensdkModule(context: ReactApplicationContext) : NativeWechatOpensd
                 map.putString("country", baseResp.country)
             }
             is SendMessageToWX.Resp -> {
-                map.putString("type", "SendMessageToWX.Resp")
+
             }
             is PayResp -> {
-                map.putString("type", "PayReq.Resp")
                 map.putString("returnKey", baseResp.returnKey)
             }
             else -> {
@@ -632,13 +630,11 @@ class WechatOpensdkModule(context: ReactApplicationContext) : NativeWechatOpensd
                         val resp = baseResp as WXLaunchMiniProgram.Resp
                         // 对应JsApi navigateBackApplication中的extraData字段数据
                         val extraData = resp.extMsg
-                        map.putString("type", "WXLaunchMiniProgramReq.Resp")
                         map.putString("extraData", extraData)
                         map.putString("extMsg", extraData)
                     }
                 }
                 if (baseResp is ChooseCardFromWXCardPackage.Resp) {
-                    map.putString("type", "WXChooseInvoiceResp.Resp")
                     map.putString("cardItemList", baseResp.cardItemList)
                 }
             }
