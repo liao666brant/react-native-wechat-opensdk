@@ -25,8 +25,8 @@ export interface Spec extends TurboModule {
 export default TurboModuleRegistry.getEnforcing<Spec>('WechatOpensdk');
 
 export interface AuthProps {
-  state: string;
-  scope?: string;
+  scope: string;
+  state?: string;
 }
 
 export interface ShareFileProps {
