@@ -1655,7 +1655,7 @@ PODS:
     - React-perflogger (= 0.79.2)
     - React-utils (= 0.79.2)
   - SocketRocket (0.7.1)
-  - WechatOpensdk (0.1.1):
+  - WechatOpensdk (0.1.2):
     - DoubleConversion
     - glog
     - hermes-engine
@@ -1979,7 +1979,7 @@ SPEC CHECKSUMS:
   ReactCodegen: c63eda03ba1d94353fb97b031fc84f75a0d125ba
   ReactCommon: 76d2dc87136d0a667678668b86f0fca0c16fdeb0
   SocketRocket: d4aabe649be1e368d1318fdf28a022d714d65748
-  WechatOpensdk: f4cc72fc0724bdcea9d1545b58b03d90dbd18b0b
+  WechatOpensdk: 77864ec9eec119e77a4d1f1b9f0bceb488044e5b
   WechatOpenSDK-XCFramework: b072030c9eeee91dfff1856a7846f70f7b9a88ed
   Yoga: c758bfb934100bb4bf9cbaccb52557cee35e8bdf
 

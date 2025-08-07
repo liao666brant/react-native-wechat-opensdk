@@ -19,6 +19,7 @@ export interface Spec extends TurboModule {
   pay: (data: PayProps) => Promise<PayResult>;
   customerService: (data: CustomerServiceProps) => Promise<void>;
   chooseInvoice: (data: ChooseInvoiceProps) => Promise<ChooseInvoiceResult>;
+  transfer: (data: TransferProps) => Promise<TransferResult>;
 }
 
 export default TurboModuleRegistry.getEnforcing<Spec>('WechatOpensdk');
@@ -119,6 +120,11 @@ export interface LaunchMiniProgramProps {
   path?: string;
 }
 
+export interface TransferProps {
+  businessType: string;
+  query: string;
+}
+
 export enum WXScene {
   /* 聊天界面    */
   WXSceneSession = 0,
@@ -176,4 +182,9 @@ export interface ChooseInvoiceResult extends BasicResult {
     encryptCode: string;
     appID: string;
   }[];
+}
+
+export interface TransferResult {
+  businessType: string;
+  extMsg: string;
 }

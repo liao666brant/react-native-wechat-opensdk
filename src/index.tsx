@@ -12,7 +12,8 @@ import WechatOpensdk, {
   type ShareMusicProps, type ShareResult,
   type ShareTextProps,
   type ShareVideoProps,
-  type ShareWebpageProps
+  type ShareWebpageProps,
+  type TransferProps
 } from './NativeWechatOpensdk';
 
 export default {
@@ -81,6 +82,12 @@ export default {
 
   launchMiniProgram: (data: LaunchMiniProgramProps): Promise<void> => {
     return WechatOpensdk.launchMiniProgram(data);
+  },
+
+  transfer: async (data: TransferProps) => {
+    const result = await WechatOpensdk.transfer(data);
+    const extMsg: {result: 'success' | 'fail' | 'cancel'} = JSON.parse(result.extMsg);
+    return {...result, extMsg};
   },
 
 }

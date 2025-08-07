@@ -483,6 +483,23 @@ RCT_EXPORT_MODULE()
 }
 
 
+/**
+ 商家转账，新版，需用户手动收款
+ */
+- (void)transfer:(JS::NativeWechatOpensdk::TransferProps &)data resolve:(RCTPromiseResolveBlock)resolve reject:(RCTPromiseRejectBlock)reject {
+  self.resolver = resolve;
+  self.rejecter = reject;
+  WXOpenBusinessViewReq *req = [WXOpenBusinessViewReq new];
+  req.businessType = data.businessType();
+  req.query = data.query();
+
+
+    [WXApi sendReq:req completion:^(BOOL completion){
+//        completion ? resolve(nil) : reject(@"ERROR", @"SDK Error", nil);
+    }];
+}
+
+
 
 
 
@@ -666,6 +683,13 @@ RCT_EXPORT_MODULE()
             [arr addObject:item];
         }
         body[@"cards"] = arr;
+        resp.errCode == WXSuccess ? self.resolver(body) : self.rejecter(@"ERROR", resp.errStr, nil);
+    } else if ([resp isKindOfClass:[WXOpenBusinessViewResp class]]){
+      WXOpenBusinessViewResp *r = (WXOpenBusinessViewResp *)resp;
+        NSMutableDictionary *body = @{@"errCode":@(r.errCode)}.mutableCopy;
+        body[@"errStr"] = r.errStr;
+        body[@"businessType"] = r.businessType;
+        body[@"extMsg"] = r.extMsg;
         resp.errCode == WXSuccess ? self.resolver(body) : self.rejecter(@"ERROR", resp.errStr, nil);
     }
 }
