@@ -21,7 +21,7 @@ yarn add react-native-wechat-opensdk
 
      import android.app.Activity
      import android.os.Bundle
-     import YOUR_PACKAGE.wxapi.WechatModule.Companion.handleWXIntent
+     import com.wechatopensdk.WechatOpensdkModule.Companion.handleWXIntent
 
       class WXEntryActivity : Activity() {
         override fun onCreate(savedInstanceState: Bundle?) {
@@ -38,7 +38,7 @@ yarn add react-native-wechat-opensdk
 
      import android.app.Activity
      import android.os.Bundle
-     import YOUR_PACKAGE.wxapi.WechatModule.Companion.handleWXIntent
+     import com.wechatopensdk.WechatOpensdkModule.Companion.handleWXIntent
 
       class WXPayEntryActivity : Activity() {
         override fun onCreate(savedInstanceState: Bundle?) {

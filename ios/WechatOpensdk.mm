@@ -484,7 +484,7 @@ RCT_EXPORT_MODULE()
 
 
 /**
- 商家转账，新版，需用户手动收款
+ 商家转账，新版，需用户手动收款
  */
 - (void)transfer:(JS::NativeWechatOpensdk::TransferProps &)data resolve:(RCTPromiseResolveBlock)resolve reject:(RCTPromiseRejectBlock)reject {
   self.resolver = resolve;
