@@ -62,9 +62,10 @@ yarn add react-native-wechat-opensdk
 3. 配置苹果 / iOS
  - 3.0 以下出现 APP_NAME 的地方都为你真实APP的名字
  - 3.1 项目根目录下执行 npx pod-install，安装所需SDK
- - 3.2 编辑 OC 和 Swift 的桥接头文件 ios/APP_NAME/APP_NAME-Bridging-Header.h，添加一行
+ - 3.2 编辑 OC 和 Swift 的桥接头文件 ios/APP_NAME/APP_NAME-Bridging-Header.h，添加两行
   ```
-   #import <WXApi.h>
+   #import <WechatOpenSDK/WXApi.h>
+   #import <WechatOpenSDK/WXApiObject.h>
   ```
  - 3.3 编辑 `ios/AppDelegate.swift` 添加如下代码，改好的文件看起来像是这样 [AppDelegate.swift](https://github.com/yybawang/react-native-wechat-opensdk/blob/master/example/ios/WechatOpensdkExample/AppDelegate.swift)
  ```swift
@@ -278,6 +279,18 @@ const result = await Wechat.chooseInvoice({
   timeStamp: "timeStamp",
   nonceStr: "nonceStr",
 });
+```
+
+### 商家转账-用户点击收款
+#### transfer: (data: TransferProps) => Promise<TransferResult>;
+```typescript
+const result = await Wechat.transfer({
+  businessType: "requestMerchantTransfer",
+  query: "使用URL的query string方式传递参数，格式为key=value&key2=value2，其中value、value2需要进行UrlEncode处理。",
+});
+if(result.extMsg.result === 'success'){
+    // OK
+}
 ```
 
 
