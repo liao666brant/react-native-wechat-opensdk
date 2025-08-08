@@ -70,31 +70,7 @@ yarn add react-native-wechat-opensdk
  - 3.3 编辑 `ios/AppDelegate.swift` 添加如下代码，改好的文件看起来像是这样 [AppDelegate.swift](https://github.com/yybawang/react-native-wechat-opensdk/blob/master/example/ios/WechatOpensdkExample/AppDelegate.swift)
  ```swift
  public class AppDelegate: ExpoAppDelegate {
-
-  // others
-  ...
-
-
-
-
-  // 包裹在此 class 下，添加以下代码 MARK: - URL Handling for WeChat Callbacks
-  func application(_ app: UIApplication, open url: URL, options: [UIApplication.OpenURLOptionsKey : Any] = [:]) -> Bool {
-    return WXApi.handleOpen(url, delegate: self)
-  }
-
-  func application(_ application: UIApplication, handleOpen url: URL) -> Bool {
-    return WXApi.handleOpen(url, delegate: self)
-  }
-
-  // For iOS 9.0+
-  func application(_ application: UIApplication, open url: URL, sourceApplication: String?, annotation: Any) -> Bool {
-    return WXApi.handleOpen(url, delegate: self)
-  }
-
-  // Universal Links support
-  func application(_ application: UIApplication, continue userActivity: NSUserActivity, restorationHandler: @escaping ([UIUserActivityRestoring]?) -> Void) -> Bool {
-    return WXApi.handleOpenUniversalLink(userActivity, delegate: self)
-  }
+    // ...
  }
 
  /**
