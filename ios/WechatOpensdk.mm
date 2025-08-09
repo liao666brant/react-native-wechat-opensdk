@@ -18,10 +18,6 @@ RCT_EXPORT_MODULE()
     self = [super init];
     if (self) {
         [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(handleOpenURL:) name:@"RCTOpenURLNotification" object:nil];
-        // 添加微信响应通知监听器
-        [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(handleWechatResp:) name:@"WechatOpensdkResp" object:nil];
-        // 添加微信请求通知监听器
-        [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(handleWechatReq:) name:@"WechatOpensdkReq" object:nil];
     }
     return self;
 }
@@ -594,24 +590,6 @@ RCT_EXPORT_MODULE()
     return type;
 }
 
-
-
-
-// 处理来自 AppDelegate 的微信请求通知
-- (void)handleWechatReq:(NSNotification *)notification {
-    BaseReq *req = [notification.userInfo objectForKey:@"req"];
-    if (req) {
-        [self onReq:req];
-    }
-}
-
-// 处理来自 AppDelegate 的微信响应通知
-- (void)handleWechatResp:(NSNotification *)notification {
-    BaseResp *resp = [notification.userInfo objectForKey:@"resp"];
-    if (resp) {
-        [self onResp:resp];
-    }
-}
 
 #pragma mark - wx callback
 

@@ -67,10 +67,10 @@ yarn add react-native-wechat-opensdk
    #import <WechatOpenSDK/WXApi.h>
    #import <WechatOpenSDK/WXApiObject.h>
   ```
- - 3.3 编辑 `ios/AppDelegate.swift` 添加如下代码，改好的文件看起来像是这样 [AppDelegate.swift](https://github.com/yybawang/react-native-wechat-opensdk/blob/master/example/ios/WechatOpensdkExample/AppDelegate.swift)
+ - 3.3 编辑 `ios/AppDelegate.swift` 添加如下代码
  ```swift
  public class AppDelegate: ExpoAppDelegate {
-    // ...
+    // ... 这里什么都不改，只是说明作用域
  }
 
  /**
@@ -78,25 +78,7 @@ yarn add react-native-wechat-opensdk
  继承微信开放平台
  */
 extension AppDelegate: WXApiDelegate{
-  func onReq(_ req: BaseReq) {
-    NSLog("AppDelegate 收到 onReq")
-    // 发送通知给 WechatOpensdk 模块
-    NotificationCenter.default.post(
-      name: NSNotification.Name("WechatOpensdkReq"),
-      object: nil,
-      userInfo: ["req": req]
-    )
-  }
 
-  func onResp(_ resp: BaseResp) {
-    NSLog("AppDelegate 收到 onResp")
-    // 发送通知给 WechatOpensdk 模块
-    NotificationCenter.default.post(
-      name: NSNotification.Name("WechatOpensdkResp"),
-      object: nil,
-      userInfo: ["resp": resp]
-    )
-  }
 }
 
  ```
