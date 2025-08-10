@@ -93,7 +93,7 @@ extension AppDelegate: WXApiDelegate{
 ### 2. 先测试是否可以正常使用
 ```js
 // 自带有个示例方法，以测试是否正常引入
-const result = multiply(3, 7);
+const result = Wechat.multiply(3, 7);
 
 // 检测微信SDK，测试是否正常返回 true
 const ok = await Wechat.isAppInstalled();
