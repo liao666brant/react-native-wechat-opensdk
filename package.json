@@ -1,6 +1,6 @@
 {
   "name": "react-native-wechat-opensdk",
-  "version": "0.1.7",
+  "version": "0.1.8",
   "description": "微信开放平台SDK",
   "main": "./lib/module/index.js",
   "types": "./lib/typescript/src/index.d.ts",
