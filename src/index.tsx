@@ -13,7 +13,7 @@ import WechatOpensdk, {
   type ShareTextProps,
   type ShareVideoProps,
   type ShareWebpageProps,
-  type TransferProps
+  type TransferProps, type TransferResult
 } from './NativeWechatOpensdk';
 
 export default {
@@ -84,9 +84,9 @@ export default {
     return WechatOpensdk.launchMiniProgram(data);
   },
 
-  transfer: async (data: TransferProps) => {
+  transfer: async (data: TransferProps): Promise<TransferResult> => {
     const result = await WechatOpensdk.transfer(data);
-    const extMsg: {result: 'success' | 'fail' | 'cancel'} = JSON.parse(result.extMsg);
+    const extMsg = JSON.parse(result.extMsg);
     return {...result, extMsg};
   },
 

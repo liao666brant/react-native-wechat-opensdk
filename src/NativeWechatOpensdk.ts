@@ -19,7 +19,7 @@ export interface Spec extends TurboModule {
   pay: (data: PayProps) => Promise<PayResult>;
   customerService: (data: CustomerServiceProps) => Promise<void>;
   chooseInvoice: (data: ChooseInvoiceProps) => Promise<ChooseInvoiceResult>;
-  transfer: (data: TransferProps) => Promise<TransferResult>;
+  transfer: (data: TransferProps) => Promise<_TransferResult>;
 }
 
 export default TurboModuleRegistry.getEnforcing<Spec>('WechatOpensdk');
@@ -184,7 +184,12 @@ export interface ChooseInvoiceResult extends BasicResult {
   }[];
 }
 
-export interface TransferResult {
+interface _TransferResult {
   businessType: string;
   extMsg: string;
+}
+
+export interface TransferResult {
+  businessType: string;
+  extMsg: {result: 'success' | 'fail' | 'cancel'};
 }

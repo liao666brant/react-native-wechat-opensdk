@@ -24,10 +24,10 @@ export default function App() {
     //   url: 'https://reactnative.dev/docs/assets/turbo-native-modules/c++visualstudiocode.webp',
     // })
 
-    const res = await Wechat.auth({
-      scope: 'snsapi_userinfo',
-      state: "123",
-    })
+    // const res = await Wechat.auth({
+    //   scope: 'snsapi_userinfo',
+    //   state: "123",
+    // })
     // const res = await Wechat.shareText({
     //   text: "分享文本",
     // })
@@ -38,6 +38,10 @@ export default function App() {
     //   videoUrl: "https://reactnative.dev/docs/assets/turbo-native-modules/c++visualstudiocode.webp",
     //   title: '水淀粉',
     // })
+    const res = await Wechat.transfer({
+      businessType: '11',
+      query: '',
+    })
     console.log('222返回值', res)
   }
 
