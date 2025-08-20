@@ -92,15 +92,14 @@ extension AppDelegate: WXApiDelegate{
 
 ### 2. 先测试是否可以正常使用
 ```js
-// 自带有个示例方法，以测试是否正常引入
+// 自带有个示例方法，以测试是否正常引入和返回
 const result = Wechat.multiply(3, 7);
+
+// 注册微信APP SDK
+const ok = await Wechat.registerApp('wx1ad80ac9a07dceef', 'https://app.YOUR_DOMAIN.com/api/');
 
 // 检测微信SDK，测试是否正常返回 true
 const ok = await Wechat.isAppInstalled();
-
-// 测试 ok 之后，直接注册即可，👆上面的两行测试代码就可以删掉了
-// 注册微信APP SDK
-const ok = await Wechat.registerApp('wx1ad80ac9a07dceef', 'https://app.YOUR_DOMAIN.com/api/');
 ```
 
 
