@@ -62,7 +62,33 @@ yarn add react-native-wechat-opensdk
 3. 配置苹果 / iOS
  - 3.0 以下出现 APP_NAME 的地方都为你真实APP的名字
  - 3.1 项目根目录下执行 npx pod-install，安装所需SDK
- - 3.2 编辑 OC 和 Swift 的桥接头文件 ios/APP_NAME/APP_NAME-Bridging-Header.h，添加两行
+ - 3.2 编辑 OC 和 Swift 的桥接头文件 `ios/APP_NAME/APP_NAME-Bridging-Header.h`，添加两行。
+   <details>
+   <summary>如果项目没有 <code>-Bridging-Header.h</code> 文件，点击这里查看如何创建。</summary>
+
+   #### 如何创建和配置桥接头文件
+
+   `[ProjectName]-Bridging-Header.h` 文件用于在 Swift 代码中调用 Objective-C 代码。如果你的项目中尚不存在此文件，请按照以下步骤创建：
+
+   1.  **打开 Xcode Workspace**：
+       进入项目的 `ios` 目录，打开 `.xcworkspace` 文件。
+
+   2.  **创建 Swift 文件（推荐方式）**：
+       - 在 Xcode 的项目导航器中，右键点击你的项目文件夹（例如 `WechatOpensdkExample`）。
+       - 选择 **`File` > `New` > `File...`**，然后选择 **`Swift File`**。
+       - 将文件命名为 `File.swift`（名称不重要），并点击 **`Create`**。
+       - Xcode 会弹出提示：“Would you like to configure an Objective-C bridging header?”。
+       - 点击 **`Create Bridging Header`**。Xcode 将自动创建并配置好桥接头文件。
+
+   3.  **手动配置（如果错过自动创建）**：
+       - 如果没有出现上述提示，请手动在 `Build Settings` 中配置。
+       - 搜索 `Objective-C Bridging Header`。
+       - 在其值中输入文件路径，例如 `WechatOpensdkExample/WechatOpensdkExample-Bridging-Header.h`（请根据你的项目名称修改）。
+
+   配置完成后，你就可以在桥接头文件中添加所需的头文件了。
+
+   </details>
+
   ```
    #import <WechatOpenSDK/WXApi.h>
    #import <WechatOpenSDK/WXApiObject.h>
@@ -250,11 +276,22 @@ if(result.extMsg.result === 'success'){
 }
 ```
 
+## 常见问题
 
+### 1. iOS 构建报错：`Cannot find type 'WXApiDelegate' in scope`
 
+这个错误说明 Xcode 的 Swift 编译器无法找到 `WXApiDelegate` 的定义。这通常是因为 Objective-C 的头文件没有在 Swift 的桥接头文件中正确导入。
 
+**解决方案：**
 
+请确保你已经创建了 `-Bridging-Header.h` 文件，并且在其中添加了以下代码：
 
+```objc
+#import <WechatOpenSDK/WXApi.h>
+#import <WechatOpenSDK/WXApiObject.h>
+```
+
+如果你的项目中没有这个文件，请参考[配置苹果 / iOS](#3-配置苹果--ios)章节中关于如何创建桥接头文件的说明。
 
 
 ## 致谢
